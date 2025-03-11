@@ -45,13 +45,52 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
       const map = L.map(mapRef.current).setView(defaultLocation, 5);
       mapInstanceRef.current = map;
       
-      // Add tile layers
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
+      // Add base layer controls
+      const baseMaps: Record<string, L.Layer> = {};
+      const overlayMaps: Record<string, L.Layer> = {};
       
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      // Add ESRI satellite imagery as base layer
+      const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      }).addTo(map);
+      baseMaps['Satellite'] = satelliteLayer;
+      
+      // Add OpenStreetMap as an alternative base layer for context
+      const streetMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      });
+      baseMaps['Street Map'] = streetMapLayer;
+      
+      // Add Stamen's terrain layer with topographic features
+      const terrainLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+        attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: 'abcd',
+        minZoom: 0,
+        maxZoom: 18
+      });
+      baseMaps['Terrain'] = terrainLayer;
+      
+      // Add transparent labels/borders overlay layer
+      const labelsLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png', {
+        attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: 'abcd',
+        minZoom: 0,
+        maxZoom: 20,
+        opacity: 0.8
+      }).addTo(map);
+      overlayMaps['Labels'] = labelsLayer;
+      
+      // Add ESRI boundaries overlay
+      const boundariesLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri',
+        opacity: 0.7
+      }).addTo(map);
+      overlayMaps['Boundaries'] = boundariesLayer;
+      
+      // Add layer control to the map
+      L.control.layers(baseMaps, overlayMaps, {
+        position: 'topright',
+        collapsed: isMobile
       }).addTo(map);
       
       // Create arrays to store points and markers
