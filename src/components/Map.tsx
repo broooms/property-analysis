@@ -6,6 +6,48 @@ import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
+// SmoothWheelZoom implementation
+// Based on https://github.com/mutsuyuki/Leaflet.SmoothWheelZoom
+const setupSmoothWheelZoom = (map: L.Map, sensitivity: number) => {
+  // Add smooth wheel zoom functionality to Leaflet
+  const smoothWheelZoom = (e: WheelEvent) => {
+    if (!map) return;
+    
+    // Cancel the native scroll event
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Calculate zoom level change based on the wheel delta
+    const delta = e.deltaY;
+    const zoomDelta = -delta / 300 * sensitivity;
+    
+    // Get current map center and zoom
+    const zoom = map.getZoom();
+    if (zoom === undefined) return;
+    
+    // Get the mouse position on the map
+    const mousePos = map.mouseEventToContainerPoint(e as unknown as L.LeafletMouseEvent);
+    const targetPoint = map.containerPointToLatLng(mousePos);
+    
+    // Set the new zoom level
+    const targetZoom = zoom + zoomDelta;
+    
+    // Schedule the zoom animation
+    map.flyTo(targetPoint, targetZoom, {
+      duration: 0.25, // Shorter animation time for responsiveness
+      easeLinearity: 0.5
+    });
+  };
+  
+  // Add event listener
+  map.getContainer().addEventListener('wheel', smoothWheelZoom, { passive: false });
+  
+  // Return function to remove event listener when component unmounts
+  return () => {
+    map.getContainer().removeEventListener('wheel', smoothWheelZoom);
+  };
+};
+
 let DefaultIcon = L.icon({
   iconUrl: icon,
   shadowUrl: iconShadow,
@@ -42,8 +84,22 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
     if (mapRef.current && !mapInstanceRef.current) {
       // Initialize the map with a default location (center of US - Kansas)
       const defaultLocation: [number, number] = [39.8283, -98.5795];
-      const map = L.map(mapRef.current).setView(defaultLocation, 5);
+      
+      // Create map with improved zoom settings
+      const map = L.map(mapRef.current, {
+        center: defaultLocation,
+        zoom: 5,
+        zoomSnap: 0.1,          // Allow finer fractional zoom levels
+        zoomDelta: 0.25,        // Change zoom level in smaller increments
+        wheelPxPerZoomLevel: 120, // Require more wheel movement per zoom level (default is 60)
+        wheelDebounceTime: 40,  // Debounce wheel events for smoother experience
+        scrollWheelZoom: false, // Disable default scroll zoom as we'll use our custom smoother version
+      });
+      
       mapInstanceRef.current = map;
+      
+      // Setup smooth wheel zoom with medium sensitivity
+      const cleanupSmoothZoom = setupSmoothWheelZoom(map, 1.5);
       
       // Add base layer controls
       const baseMaps: Record<string, L.Layer> = {};
@@ -240,6 +296,7 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
     // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
+        cleanupSmoothZoom(); // Remove smooth zoom event listener
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
