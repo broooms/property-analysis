@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -22,12 +22,27 @@ interface MapProps {
 const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  // Handle window resize events
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Invalidate map size when window resizes
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current) {
-      // Initialize the map with a default location (San Francisco)
-      const defaultLocation: [number, number] = [37.7749, -122.4194];
-      const map = L.map(mapRef.current).setView(defaultLocation, 13);
+      // Initialize the map with a default location (center of US - Kansas)
+      const defaultLocation: [number, number] = [39.8283, -98.5795];
+      const map = L.map(mapRef.current).setView(defaultLocation, 5);
       mapInstanceRef.current = map;
       
       // Add tile layers
@@ -86,44 +101,63 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
         }
       });
       
-      // Add instructions
-      const instructionsDiv = L.DomUtil.create('div', 'map-instructions');
-      instructionsDiv.innerHTML = `
-        <p>Click to add points. Double-click to complete the polygon.</p>
-        <button class="clear-button">Clear Points</button>
-      `;
+      // Create and add instruction control
+      const createInstructionsControl = () => {
+        const instructionsDiv = L.DomUtil.create('div', 'map-instructions');
+        instructionsDiv.innerHTML = `
+          <p>${isMobile ? 'Tap' : 'Click'} to add points. ${isMobile ? 'Double-tap' : 'Double-click'} to complete.</p>
+          <button class="clear-button">Clear Points</button>
+        `;
+        
+        // Add click handler to clear button
+        const addClearButtonHandler = () => {
+          const clearButton = instructionsDiv.querySelector('.clear-button');
+          if (clearButton) {
+            clearButton.addEventListener('click', () => {
+              // Remove all markers
+              markers.forEach(marker => map.removeLayer(marker));
+              markers.length = 0;
+              
+              // Remove polyline if it exists
+              if (polyline) {
+                map.removeLayer(polyline);
+                polyline = null;
+              }
+              
+              // Remove polygon if it exists
+              if (polygon) {
+                map.removeLayer(polygon);
+                polygon = null;
+              }
+              
+              // Clear points array
+              points.length = 0;
+            });
+          }
+        };
+        
+        addClearButtonHandler();
+        return instructionsDiv;
+      };
       
       // Add the instructions to the map
       const instructionsControl = new L.Control({ position: 'bottomleft' });
-      instructionsControl.onAdd = function() {
-        return instructionsDiv;
-      };
+      instructionsControl.onAdd = createInstructionsControl;
       instructionsControl.addTo(map);
       
-      // Add click handler to clear button
-      const clearButton = instructionsDiv.querySelector('.clear-button');
-      if (clearButton) {
-        clearButton.addEventListener('click', () => {
-          // Remove all markers
-          markers.forEach(marker => map.removeLayer(marker));
-          markers.length = 0;
-          
-          // Remove polyline if it exists
-          if (polyline) {
-            map.removeLayer(polyline);
-            polyline = null;
-          }
-          
-          // Remove polygon if it exists
-          if (polygon) {
-            map.removeLayer(polygon);
-            polygon = null;
-          }
-          
-          // Clear points array
-          points.length = 0;
-        });
+      // Add zoom control with positioning based on device
+      L.control.zoom({
+        position: isMobile ? 'topright' : 'topleft'
+      }).addTo(map);
+      
+      // Handle mobile specific adjustments
+      if (isMobile) {
+        // Adjust zoom level for mobile
+        map.setZoom(4);
       }
+      
+      // Ensure map renders correctly after load
+      setTimeout(() => map.invalidateSize(), 100);
     }
     
     // Cleanup function
@@ -133,10 +167,18 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [onPolygonCreated]);
+  }, [onPolygonCreated, isMobile]);
 
   return (
-    <div ref={mapRef} style={{ height: '80vh', width: '100%' }}></div>
+    <div 
+      ref={mapRef} 
+      style={{ 
+        height: isMobile ? '70vh' : '80vh', 
+        width: '100%',
+        maxHeight: '800px' 
+      }}
+      className="leaflet-map-container"
+    ></div>
   );
 };
 
