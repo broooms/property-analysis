@@ -56,13 +56,15 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 interface MapProps {
   onPolygonCreated?: (coordinates: number[][]) => void;
+  landCoverData?: any; // Add this prop to receive land cover results
 }
 
-const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
+const MapComponent: React.FC<MapProps> = ({ onPolygonCreated, landCoverData }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const cleanupSmoothZoomRef = useRef<(() => void) | null>(null);
+  const landCoverLayerRef = useRef<L.GeoJSON | null>(null);
   
   // Handle window resize events
   useEffect(() => {
@@ -302,6 +304,73 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
       }
     };
   }, [onPolygonCreated, isMobile]);
+
+  // Add this effect to display land cover data when it changes
+  useEffect(() => {
+    if (mapInstanceRef.current && landCoverData) {
+      // Clear previous land cover layer if it exists
+      if (landCoverLayerRef.current) {
+        mapInstanceRef.current.removeLayer(landCoverLayerRef.current);
+        landCoverLayerRef.current = null;
+      }
+      
+      // Create GeoJSON for the land cover data
+      // In a real implementation, this would use actual GeoJSON from the analysis
+      // For now, we'll simulate it using the polygon coordinates and results
+      try {
+        // Find the polygon that was used for analysis
+        const polygonLayer = L.layerGroup();
+        const layers = Object.values(polygonLayer._layers as any);
+        
+        if (layers.length > 0) {
+          const polygon = layers[0] as any;
+          const bounds = polygon.getBounds();
+          
+          // Create a simplified GeoJSON with random land cover types
+          // In a real implementation, this would come from the API
+          const landCoverLayer = L.geoJSON({
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {
+                  landCoverType: 'trees'
+                },
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [polygon.getLatLngs()[0].map((ll: L.LatLng) => [ll.lng, ll.lat])]
+                }
+              }
+            ]
+          }, {
+            style: (feature) => {
+              // Style based on land cover type
+              const landCoverType = feature?.properties?.landCoverType || 'other';
+              const colors: Record<string, string> = {
+                trees: '#2E7D32',
+                grass: '#8BC34A',
+                water: '#1976D2',
+                buildings: '#757575',
+                other: '#BDBDBD'
+              };
+              
+              return {
+                fillColor: colors[landCoverType] || colors.other,
+                weight: 2,
+                opacity: 1,
+                color: 'white',
+                fillOpacity: 0.5
+              };
+            }
+          }).addTo(mapInstanceRef.current);
+          
+          landCoverLayerRef.current = landCoverLayer;
+        }
+      } catch (error) {
+        console.error('Error displaying land cover overlay:', error);
+      }
+    }
+  }, [landCoverData]);
 
   return (
     <div 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import * as tf from '@tensorflow/tfjs';
+import geospatialService, { GeospatialProvider } from '../services/GeospatialService';
+import { LandCoverType } from '../constants/landCover';
 
 interface AnalysisProps {
   polygonCoordinates: number[][] | null;
@@ -7,32 +8,23 @@ interface AnalysisProps {
 }
 
 export interface AnalysisResult {
-  trees: number;
-  grass: number;
-  water: number;
-  buildings: number;
-  other: number;
+  [LandCoverType.TREES]: number;
+  [LandCoverType.GRASS]: number;
+  [LandCoverType.WATER]: number;
+  [LandCoverType.BUILDINGS]: number;
+  [LandCoverType.OTHER]: number;
+  // Optional extended types that may be present depending on the analysis provider
+  [LandCoverType.CROPS]?: number;
+  [LandCoverType.BARREN]?: number;
+  [LandCoverType.SHRUBLAND]?: number;
+  [LandCoverType.WETLANDS]?: number;
+  [LandCoverType.SNOW_ICE]?: number;
 }
 
 const Analysis: React.FC<AnalysisProps> = ({ polygonCoordinates, onAnalysisComplete }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Helper function to calculate polygon area (approximate)
-  const calculatePolygonArea = (coords: number[][]): number => {
-    if (!coords || coords.length < 3) return 0;
-    
-    // Simple approximation for small areas
-    // In a real implementation, we would use proper geospatial calculations
-    let area = 0;
-    for (let i = 0; i < coords.length; i++) {
-      const j = (i + 1) % coords.length;
-      area += coords[i][0] * coords[j][1];
-      area -= coords[j][0] * coords[i][1];
-    }
-    
-    return Math.abs(area / 2);
-  };
+  const [selectedProvider, setSelectedProvider] = useState<GeospatialProvider>(GeospatialProvider.MOCK);
 
   const performAnalysis = async () => {
     if (!polygonCoordinates || polygonCoordinates.length === 0) {
@@ -44,44 +36,11 @@ const Analysis: React.FC<AnalysisProps> = ({ polygonCoordinates, onAnalysisCompl
     setError(null);
 
     try {
-      // In a real implementation, we would:
-      // 1. Capture the satellite imagery within the polygon
-      // 2. Process it using TensorFlow.js
-      // 3. Classify the land cover types
+      // Set the selected provider before analysis
+      geospatialService.setProvider(selectedProvider);
       
-      // For this prototype, we'll simulate the analysis with semi-random data
-      // based on the polygon size and shape
-      await tf.ready();
-      
-      // Simulate processing time (would be longer for larger areas)
-      const area = calculatePolygonArea(polygonCoordinates);
-      const processingTime = Math.min(3000, 1000 + area * 100);
-      await new Promise(resolve => setTimeout(resolve, processingTime));
-      
-      // Generate somewhat realistic distribution for San Francisco area (urban with some green space)
-      // We adjust the random ranges based on the polygon size to simulate more realistic results
-      const isLargeArea = area > 0.001; // Arbitrary threshold
-      
-      const results: AnalysisResult = {
-        // Large areas tend to have more trees, smaller urban plots have fewer
-        trees: Math.round(Math.random() * (isLargeArea ? 40 : 20)),
-        
-        // More grass in larger areas
-        grass: Math.round(Math.random() * (isLargeArea ? 30 : 15)),
-        
-        // Only significant water if larger area (might include coastline)
-        water: Math.round(Math.random() * (isLargeArea ? 15 : 5)),
-        
-        // More buildings in smaller urban areas
-        buildings: Math.round(Math.random() * (isLargeArea ? 20 : 60)),
-        
-        other: 0
-      };
-      
-      // Ensure the total adds up to 100%
-      const totalArea = 100; // Percentages should sum to 100
-      const sum = results.trees + results.grass + results.water + results.buildings;
-      results.other = Math.max(0, totalArea - sum);
+      // Perform the land cover analysis using our service
+      const results = await geospatialService.analyzeLandCover(polygonCoordinates);
       
       if (onAnalysisComplete) {
         onAnalysisComplete(results);
@@ -93,20 +52,53 @@ const Analysis: React.FC<AnalysisProps> = ({ polygonCoordinates, onAnalysisCompl
     }
   };
 
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProvider(e.target.value as GeospatialProvider);
+  };
+
   return (
     <div className="analysis-container">
+      <div className="analysis-options">
+        <label htmlFor="provider-select">Data Source:</label>
+        <select 
+          id="provider-select" 
+          value={selectedProvider} 
+          onChange={handleProviderChange}
+          disabled={isAnalyzing}
+        >
+          <option value={GeospatialProvider.MOCK}>Simulated Data (Demo)</option>
+          <option value={GeospatialProvider.SENTINEL_HUB}>Sentinel Hub</option>
+          <option value={GeospatialProvider.GOOGLE_EARTH_ENGINE}>Google Earth Engine</option>
+          <option value={GeospatialProvider.USGS_LANDCOVER}>USGS Land Cover</option>
+        </select>
+      </div>
+      
       <button 
         onClick={performAnalysis} 
         disabled={isAnalyzing || !polygonCoordinates}
-        className="analyze-button"
+        className={`analyze-button ${isAnalyzing ? 'analyzing' : ''}`}
       >
-        {isAnalyzing ? 'Analyzing...' : 'Analyze Property'}
+        {isAnalyzing ? (
+          <>
+            <span className="spinner"></span>
+            Analyzing...
+          </>
+        ) : (
+          'Analyze Property'
+        )}
       </button>
       
       {error && <div className="error-message">{error}</div>}
       
       <div className="analysis-info">
         <p>Select a property boundary on the map and click "Analyze Property" to identify land cover types.</p>
+        <p className="provider-note">
+          {selectedProvider === GeospatialProvider.MOCK ? (
+            <span className="note">Note: Using simulated data for demonstration purposes.</span>
+          ) : (
+            <span className="note">Using satellite imagery to analyze actual land cover.</span>
+          )}
+        </p>
       </div>
     </div>
   );
