@@ -1,46 +1,87 @@
-# Getting Started with Create React App
+# Property Land Cover Analysis Tool
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A web-based tool that allows users to interactively select property boundaries on a satellite imagery map and analyze land cover types (e.g., trees, grass, water, buildings) within those boundaries.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Interactive Map Interface:** Display satellite imagery and allow users to draw polygons to define property boundaries.
+- **Land Cover Analysis:** Analyze the selected area to classify land cover into multiple categories.
+- **Visual Results:** Display analysis results with color-coded charts and percentages.
+- **Cross-Platform Compatibility:** Works on both desktop and mobile devices.
 
-### `npm start`
+## Technologies Used
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **React:** Frontend framework for building the user interface.
+- **TypeScript:** For type-safe JavaScript code.
+- **Leaflet.js:** For interactive maps with satellite imagery.
+- **TensorFlow.js:** For client-side land cover analysis.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Getting Started
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js (v14 or later)
+- npm (v6 or later)
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/property-analysis.git
+   cd property-analysis
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. Start the development server:
+   ```
+   npm start
+   ```
 
-### `npm run eject`
+4. Open your browser and navigate to `http://localhost:3000`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## How to Use
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. The map will load with satellite imagery of San Francisco.
+2. Use the drawing tools to draw a polygon around the property you want to analyze:
+   - Click on the map to add points to your polygon
+   - Each click adds a point, and when you have at least 3 points, a blue polygon will appear
+   - Double-click to complete the polygon
+   - To start over, click the "Clear Points" button in the bottom-left corner
+3. Click the "Analyze Property" button to process the selected area.
+4. View the analysis results showing the percentage of different land cover types within your selected boundary.
+5. To analyze a different area, draw a new polygon and click "Analyze Property" again.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Development
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Project Structure
 
-## Learn More
+- `src/components/Map.tsx`: Map component with drawing tools
+- `src/components/Analysis.tsx`: Handles the land cover analysis
+- `src/components/Results.tsx`: Displays analysis results
+- `src/App.tsx`: Main application component
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Available Scripts
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- `npm start`: Runs the app in development mode
+- `npm test`: Launches the test runner
+- `npm run build`: Builds the app for production
+- `npm run eject`: Ejects from create-react-app
+
+## Limitations
+
+- This is a prototype application using simulated analysis results.
+- In a production environment, a more sophisticated land cover classification model would be used.
+- The application uses free and open-source map data, which may have limitations in some regions.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- OpenStreetMap and ESRI for providing free satellite imagery
+- React and Leaflet.js communities for excellent documentation and examples

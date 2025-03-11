@@ -5,9 +5,39 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Ensure Leaflet map containers have proper height */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Fix for Leaflet draw control icons */
+.leaflet-draw-toolbar a {
+  background-image: url('https://unpkg.com/leaflet-draw@1.0.4/dist/images/spritesheet.png');
+  background-repeat: no-repeat;
+}
+
+.leaflet-touch .leaflet-draw-toolbar a {
+  background-image: url('https://unpkg.com/leaflet-draw@1.0.4/dist/images/spritesheet-2x.png');
+  background-size: 270px 30px;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 767px) {
+  .leaflet-touch .leaflet-control-layers, 
+  .leaflet-touch .leaflet-bar {
+    border: 2px solid rgba(0,0,0,0.2);
+  }
+  
+  .leaflet-control-zoom {
+    display: none;
+  }
 }
