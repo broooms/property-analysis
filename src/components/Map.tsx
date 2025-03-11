@@ -19,23 +19,20 @@ const setupSmoothWheelZoom = (map: L.Map, sensitivity: number) => {
     
     // Calculate zoom level change based on the wheel delta
     const delta = e.deltaY;
-    const zoomDelta = -delta / 300 * sensitivity;
+    const zoomDelta = -delta / 200 * sensitivity; // Increased responsiveness
     
     // Get current map center and zoom
+    const currentCenter = map.getCenter();
     const zoom = map.getZoom();
     if (zoom === undefined) return;
     
-    // Get the mouse position on the map
-    const mousePos = map.mouseEventToContainerPoint(e as unknown as L.LeafletMouseEvent);
-    const targetPoint = map.containerPointToLatLng(mousePos);
-    
-    // Set the new zoom level
+    // Calculate the new zoom level
     const targetZoom = zoom + zoomDelta;
     
-    // Schedule the zoom animation
-    map.flyTo(targetPoint, targetZoom, {
-      duration: 0.25, // Shorter animation time for responsiveness
-      easeLinearity: 0.5
+    // Use setView to keep the same center but change zoom level
+    map.setView(currentCenter, targetZoom, {
+      animate: true,
+      duration: 0.15 // Faster animation (seconds)
     });
   };
   
@@ -65,6 +62,7 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const cleanupSmoothZoomRef = useRef<(() => void) | null>(null);
   
   // Handle window resize events
   useEffect(() => {
@@ -89,17 +87,17 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
       const map = L.map(mapRef.current, {
         center: defaultLocation,
         zoom: 5,
-        zoomSnap: 0.1,          // Allow finer fractional zoom levels
-        zoomDelta: 0.25,        // Change zoom level in smaller increments
-        wheelPxPerZoomLevel: 120, // Require more wheel movement per zoom level (default is 60)
-        wheelDebounceTime: 40,  // Debounce wheel events for smoother experience
-        scrollWheelZoom: false, // Disable default scroll zoom as we'll use our custom smoother version
+        zoomSnap: 0.5,         // Larger zoom level snapping
+        zoomDelta: 0.75,       // Larger zoom increments for faster zooming
+        wheelDebounceTime: 100, // Debounce wheel events
+        scrollWheelZoom: false, // Disable default scroll wheel zoom
       });
       
       mapInstanceRef.current = map;
       
-      // Setup smooth wheel zoom with medium sensitivity
-      const cleanupSmoothZoom = setupSmoothWheelZoom(map, 1.5);
+      // Setup smooth wheel zoom with higher sensitivity for faster zooming
+      const cleanupFn = setupSmoothWheelZoom(map, 2.5);
+      cleanupSmoothZoomRef.current = cleanupFn;
       
       // Add base layer controls
       const baseMaps: Record<string, L.Layer> = {};
@@ -296,7 +294,9 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
     // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
-        cleanupSmoothZoom(); // Remove smooth zoom event listener
+        if (cleanupSmoothZoomRef.current) {
+          cleanupSmoothZoomRef.current(); // Remove smooth zoom event listener
+        }
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
