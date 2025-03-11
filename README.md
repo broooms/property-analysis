@@ -77,6 +77,22 @@ A web-based tool that allows users to interactively select property boundaries o
 - In a production environment, a more sophisticated land cover classification model would be used.
 - The application uses free and open-source map data, which may have limitations in some regions.
 
+## Future Enhancements
+
+- Integrate a real machine learning model for accurate land cover classification
+- Add the ability to save and share analysis results
+- Improve the visualization with more detailed breakdowns of land cover types
+- Add additional map layers and data sources
+- Implement user accounts and history tracking
+
+## Project Status
+
+This application is currently in prototype stage to demonstrate the concept and UI. The land cover analysis is simulated using random data. Future iterations will include:
+
+1. Integration with real satellite imagery processing
+2. More accurate land cover classification using pre-trained models
+3. Additional features like property boundary import/export
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

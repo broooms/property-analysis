@@ -61,8 +61,8 @@ const Results: React.FC<ResultsProps> = ({ results }) => {
       
       <div className="results-summary">
         <p>
-          This property contains approximately {results.trees}% tree cover, 
-          {results.grass}% grass, {results.water}% water, and {results.buildings}% buildings.
+          This property contains approximately {getPercentage(results.trees)}% tree cover, 
+          {getPercentage(results.grass)}% grass, {getPercentage(results.water)}% water, and {getPercentage(results.buildings)}% buildings.
         </p>
       </div>
     </div>
