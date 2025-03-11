@@ -60,8 +60,66 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
       let polyline: L.Polyline | null = null;
       let polygon: L.Polygon | null = null;
       
-      // Add click handler to map
+      // Simple flag to track if we're drawing a polygon
+      let isDrawing = false;
+      
+      // Function to update the visual representation of the polygon
+      const updatePolygonVisuals = () => {
+        // Remove existing polyline and polygon
+        if (polyline) {
+          map.removeLayer(polyline);
+          polyline = null;
+        }
+        
+        if (polygon) {
+          map.removeLayer(polygon);
+          polygon = null;
+        }
+        
+        // Add new polyline if we have at least 2 points
+        if (points.length >= 2) {
+          polyline = L.polyline(points, { color: 'blue' }).addTo(map);
+        }
+        
+        // Add new polygon if we have at least 3 points
+        if (points.length >= 3) {
+          polygon = L.polygon(points, { color: 'blue', fillOpacity: 0.3 }).addTo(map);
+        }
+      };
+      
+      // Function to clear all drawing data
+      const clearDrawing = () => {
+        // Remove all markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers.length = 0;
+        
+        // Remove polyline if it exists
+        if (polyline) {
+          map.removeLayer(polyline);
+          polyline = null;
+        }
+        
+        // Remove polygon if it exists
+        if (polygon) {
+          map.removeLayer(polygon);
+          polygon = null;
+        }
+        
+        // Clear points array
+        points.length = 0;
+        
+        // Reset drawing state
+        isDrawing = false;
+      };
+      
+      // Start/continue drawing on map click
       map.on('click', (e: L.LeafletMouseEvent) => {
+        if (!isDrawing) {
+          // Start a new drawing session
+          clearDrawing();
+          isDrawing = true;
+        }
+        
         // Add the clicked point
         points.push(e.latlng);
         
@@ -69,35 +127,28 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
         const marker = L.marker(e.latlng).addTo(map);
         markers.push(marker);
         
-        // If we have a polyline already, remove it
-        if (polyline) {
-          map.removeLayer(polyline);
-        }
-        
-        // If we have a polygon already, remove it
-        if (polygon) {
-          map.removeLayer(polygon);
-        }
-        
-        // If we have at least 2 points, draw a polyline
-        if (points.length >= 2) {
-          polyline = L.polyline(points, { color: 'blue' }).addTo(map);
-        }
-        
-        // If we have at least 3 points, draw a polygon
-        if (points.length >= 3) {
-          polygon = L.polygon(points, { color: 'blue', fillOpacity: 0.3 }).addTo(map);
-        }
+        // Update the polygon visuals
+        updatePolygonVisuals();
       });
       
-      // Add double-click handler to complete the polygon
+      // Complete the polygon on double-click
       map.on('dblclick', (e: L.LeafletMouseEvent) => {
-        // Prevent adding a new point on double-click
+        // Prevent the default double-click behavior (zoom)
+        e.originalEvent.preventDefault();
         L.DomEvent.stopPropagation(e);
         
-        if (points.length >= 3 && onPolygonCreated) {
+        // Only complete if we have at least 3 points
+        if (points.length >= 3 && isDrawing) {
+          // Convert to the format expected by the callback
           const coordinates = points.map(p => [p.lat, p.lng]);
-          onPolygonCreated(coordinates);
+          
+          // Call the callback with the polygon coordinates
+          if (onPolygonCreated) {
+            onPolygonCreated(coordinates);
+          }
+          
+          // Mark drawing as complete
+          isDrawing = false;
         }
       });
       
@@ -113,25 +164,12 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated }) => {
         const addClearButtonHandler = () => {
           const clearButton = instructionsDiv.querySelector('.clear-button');
           if (clearButton) {
-            clearButton.addEventListener('click', () => {
-              // Remove all markers
-              markers.forEach(marker => map.removeLayer(marker));
-              markers.length = 0;
+            clearButton.addEventListener('click', (e: Event) => {
+              // Prevent the event from propagating to the map
+              e.stopPropagation();
               
-              // Remove polyline if it exists
-              if (polyline) {
-                map.removeLayer(polyline);
-                polyline = null;
-              }
-              
-              // Remove polygon if it exists
-              if (polygon) {
-                map.removeLayer(polygon);
-                polygon = null;
-              }
-              
-              // Clear points array
-              points.length = 0;
+              // Clear the drawing
+              clearDrawing();
             });
           }
         };
