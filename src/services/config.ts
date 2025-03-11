@@ -29,6 +29,7 @@ export const apiConfig = {
       [GeospatialProvider.SENTINEL_HUB]: process.env.REACT_APP_SENTINEL_HUB_API_KEY || '',
       [GeospatialProvider.GOOGLE_EARTH_ENGINE]: process.env.REACT_APP_GOOGLE_EARTH_ENGINE_API_KEY || '',
       [GeospatialProvider.USGS_LANDCOVER]: process.env.REACT_APP_USGS_API_KEY || '',
+      [GeospatialProvider.MOCK]: '', // Add this to fix the TypeScript error
     },
     
     // Enable caching in all environments
@@ -51,7 +52,7 @@ export const getCurrentConfig = () => {
   return {
     geospatial: {
       provider: apiConfig.geospatial.provider[env],
-      apiKey: apiConfig.geospatial.apiKeys[apiConfig.geospatial.provider[env]],
+      apiKey: apiConfig.geospatial.apiKeys[apiConfig.geospatial.provider[env]] || '',
       useCache: apiConfig.geospatial.useCache,
     },
     map: apiConfig.map,
