@@ -264,6 +264,16 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated, landCoverData }) =
                 
                 // Hide the complete button
                 (completeButton as HTMLElement).style.display = 'none';
+                
+                // On mobile, scroll to the analysis panel
+                if (window.innerWidth < 768) {
+                  setTimeout(() => {
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar) {
+                      sidebar.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 300); // Short delay to allow state updates
+                }
               }
             });
           }
@@ -275,7 +285,7 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated, landCoverData }) =
       };
       
       // Add the instructions to the map
-      const instructionsControl = new L.Control({ position: 'bottomleft' });
+      const instructionsControl = new L.Control({ position: 'topleft' });
       instructionsControl.onAdd = createInstructionsControl;
       instructionsControl.addTo(map);
       
@@ -340,6 +350,16 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated, landCoverData }) =
           const completeButton = document.querySelector('.complete-button') as HTMLElement;
           if (completeButton) {
             completeButton.style.display = 'none';
+          }
+          
+          // On mobile, scroll to the analysis panel
+          if (window.innerWidth < 768) {
+            setTimeout(() => {
+              const sidebar = document.querySelector('.sidebar');
+              if (sidebar) {
+                sidebar.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 300); // Short delay to allow state updates
           }
         } else {
           console.log('Polygon not completed: points=', points.length, 'isDrawing=', isDrawing);
