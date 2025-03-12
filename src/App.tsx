@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import MapComponent from './components/Map';
 import Analysis, { AnalysisResult } from './components/Analysis';
@@ -10,7 +10,12 @@ function App() {
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null);
   const [isMapLayerVisible, setIsMapLayerVisible] = useState(true);
 
+  useEffect(() => {
+    console.log('App polygonCoordinates state updated:', polygonCoordinates);
+  }, [polygonCoordinates]);
+
   const handlePolygonCreated = (coordinates: number[][]) => {
+    console.log('App received polygon coordinates:', coordinates);
     setPolygonCoordinates(coordinates);
     // Reset analysis results when a new polygon is drawn
     setAnalysisResults(null);

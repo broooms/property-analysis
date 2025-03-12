@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import geospatialService, { GeospatialProvider } from '../services/GeospatialService';
 import { LandCoverType } from '../constants/landCover';
 
@@ -25,6 +25,11 @@ const Analysis: React.FC<AnalysisProps> = ({ polygonCoordinates, onAnalysisCompl
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<GeospatialProvider>(GeospatialProvider.MOCK);
+  
+  useEffect(() => {
+    console.log('Analysis component - polygonCoordinates:', polygonCoordinates);
+    console.log('Button should be enabled:', !isAnalyzing && !!polygonCoordinates);
+  }, [polygonCoordinates, isAnalyzing]);
 
   const performAnalysis = async () => {
     if (!polygonCoordinates || polygonCoordinates.length === 0) {

@@ -207,7 +207,87 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated, landCoverData }) =
         isDrawing = false;
       };
       
-      // Start/continue drawing on map click
+      // Create and add instruction control
+      const createInstructionsControl = () => {
+        const instructionsDiv = L.DomUtil.create('div', 'map-instructions');
+        instructionsDiv.innerHTML = `
+          <p>${isMobile ? 'Tap' : 'Click'} to add points. ${isMobile ? 'Double-tap' : 'Double-click'} to complete.</p>
+          <button class="clear-button">Clear Points</button>
+          <button class="complete-button" style="display: none; margin-top: 5px; background-color: #4CAF50; color: white;">Complete Polygon</button>
+        `;
+        
+        // Add click handler to clear button
+        const addClearButtonHandler = () => {
+          const clearButton = instructionsDiv.querySelector('.clear-button');
+          if (clearButton) {
+            clearButton.addEventListener('click', (e: Event) => {
+              // Prevent the event from propagating to the map
+              e.stopPropagation();
+              
+              // Clear the drawing
+              clearDrawing();
+              
+              // Hide the complete button
+              const completeButton = instructionsDiv.querySelector('.complete-button');
+              if (completeButton) {
+                (completeButton as HTMLElement).style.display = 'none';
+              }
+            });
+          }
+        };
+
+        // Add click handler to complete button
+        const addCompleteButtonHandler = () => {
+          const completeButton = instructionsDiv.querySelector('.complete-button');
+          if (completeButton) {
+            completeButton.addEventListener('click', (e: Event) => {
+              // Prevent the event from propagating to the map
+              e.stopPropagation();
+              
+              // Only complete if we have at least 3 points
+              if (points.length >= 3 && isDrawing) {
+                // Convert to the format expected by the callback
+                const coordinates = points.map(p => [p.lat, p.lng]);
+                
+                console.log('Polygon completed via button, coordinates:', coordinates);
+                
+                // Call the callback with the polygon coordinates
+                if (onPolygonCreated) {
+                  console.log('Calling onPolygonCreated callback');
+                  onPolygonCreated(coordinates);
+                } else {
+                  console.error('onPolygonCreated callback is not defined');
+                }
+                
+                // Mark drawing as complete
+                isDrawing = false;
+                
+                // Hide the complete button
+                (completeButton as HTMLElement).style.display = 'none';
+              }
+            });
+          }
+        };
+        
+        addClearButtonHandler();
+        addCompleteButtonHandler();
+        return instructionsDiv;
+      };
+      
+      // Add the instructions to the map
+      const instructionsControl = new L.Control({ position: 'bottomleft' });
+      instructionsControl.onAdd = createInstructionsControl;
+      instructionsControl.addTo(map);
+      
+      // Update function to show Complete button when there are at least 3 points
+      const updateCompleteButtonVisibility = () => {
+        const completeButton = document.querySelector('.complete-button') as HTMLElement;
+        if (completeButton) {
+          completeButton.style.display = points.length >= 3 && isDrawing ? 'block' : 'none';
+        }
+      };
+      
+      // Add the click handler to update button visibility
       map.on('click', (e: L.LeafletMouseEvent) => {
         if (!isDrawing) {
           // Start a new drawing session
@@ -224,59 +304,47 @@ const MapComponent: React.FC<MapProps> = ({ onPolygonCreated, landCoverData }) =
         
         // Update the polygon visuals
         updatePolygonVisuals();
+        
+        // Update complete button visibility
+        updateCompleteButtonVisibility();
       });
       
       // Complete the polygon on double-click
       map.on('dblclick', (e: L.LeafletMouseEvent) => {
+        console.log('Double-click detected on map', e);
         // Prevent the default double-click behavior (zoom)
         e.originalEvent.preventDefault();
         L.DomEvent.stopPropagation(e);
+        
+        console.log('Current drawing state:', { points: points.length, isDrawing });
         
         // Only complete if we have at least 3 points
         if (points.length >= 3 && isDrawing) {
           // Convert to the format expected by the callback
           const coordinates = points.map(p => [p.lat, p.lng]);
           
+          console.log('Polygon completed, coordinates:', coordinates);
+          
           // Call the callback with the polygon coordinates
           if (onPolygonCreated) {
+            console.log('Calling onPolygonCreated callback');
             onPolygonCreated(coordinates);
+          } else {
+            console.error('onPolygonCreated callback is not defined');
           }
           
           // Mark drawing as complete
           isDrawing = false;
+          
+          // Hide the complete button
+          const completeButton = document.querySelector('.complete-button') as HTMLElement;
+          if (completeButton) {
+            completeButton.style.display = 'none';
+          }
+        } else {
+          console.log('Polygon not completed: points=', points.length, 'isDrawing=', isDrawing);
         }
       });
-      
-      // Create and add instruction control
-      const createInstructionsControl = () => {
-        const instructionsDiv = L.DomUtil.create('div', 'map-instructions');
-        instructionsDiv.innerHTML = `
-          <p>${isMobile ? 'Tap' : 'Click'} to add points. ${isMobile ? 'Double-tap' : 'Double-click'} to complete.</p>
-          <button class="clear-button">Clear Points</button>
-        `;
-        
-        // Add click handler to clear button
-        const addClearButtonHandler = () => {
-          const clearButton = instructionsDiv.querySelector('.clear-button');
-          if (clearButton) {
-            clearButton.addEventListener('click', (e: Event) => {
-              // Prevent the event from propagating to the map
-              e.stopPropagation();
-              
-              // Clear the drawing
-              clearDrawing();
-            });
-          }
-        };
-        
-        addClearButtonHandler();
-        return instructionsDiv;
-      };
-      
-      // Add the instructions to the map
-      const instructionsControl = new L.Control({ position: 'bottomleft' });
-      instructionsControl.onAdd = createInstructionsControl;
-      instructionsControl.addTo(map);
       
       // Add zoom control with positioning based on device
       L.control.zoom({
